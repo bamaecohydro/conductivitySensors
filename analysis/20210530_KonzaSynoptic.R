@@ -16,9 +16,6 @@ library(tidyverse) #join the cult
 library(lubridate) #date handling
 library(readxl) #read xl files
 
-#load custom functions
-source("R/read_xle.R")
-
 #Define directories of interest
 #   The data directory is where the sensor data is housed
 data_dir<-"data/20210530/"
@@ -130,8 +127,24 @@ field_log<-field_log %>% mutate(SN = as.numeric(paste(SN)))
 ts<-ts %>% mutate(SN = as.numeric(paste(SN)))
 ts<-left_join(ts, field_log)
 
+#Filter points that aren't within start/stop
+ts<-ts %>% 
+  mutate(datetime = paste(Date, Time), 
+         datetime = mdy_hms(datetime)) 
+ts<-ts %>% 
+  mutate(experiment = if_else(datetime>start_time, 1, 0)) %>% 
+  filter(experiment == 1) %>% 
+  mutate(experiment = if_else(datetime<stop_time, 1, 0)) %>% 
+  filter(experiment == 1) %>% 
+  filter(CONDUCTIVITY>400)
+  
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #Step 4: Print curves for each sonde -----------------------
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-field_log
+ts %>% 
+  filter(LocationID == '04M01') %>% 
+  filter(sonde_location == 'downstream_2') %>% 
+  ggplot(aes(x=Time, y=CONDUCTIVITY)) +
+    geom_line() +
+    theme_bw()
 
